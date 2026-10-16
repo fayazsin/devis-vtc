@@ -1,0 +1,399 @@
+<title>Devis VTC</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: dark-green band header, two columns (form | sticky total), devis/facture sheet below */
+:root{
+  --bg:#f3f5f2; --surface:#ffffff; --fg:#17231c; --muted:#5b6b61; --line:#dde4de;
+  --band:#163a28; --band-fg:#eef6f0; --accent:#1f6b45; --accent-fg:#ffffff;
+  --note:#fbf3e3; --note-line:#ecd9ac; --sub:#f6f8f4;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Public Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1712; --surface:#17221b; --fg:#e4ece6; --muted:#9aab9f; --line:#2a3a30;
+  --band:#0b2618; --band-fg:#e4f1e8; --accent:#4fbf84; --accent-fg:#0b1a11;
+  --note:#2a2414; --note-line:#4d4125; --sub:#1c2a21; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1712; --surface:#17221b; --fg:#e4ece6; --muted:#9aab9f; --line:#2a3a30;
+  --band:#0b2618; --band-fg:#e4f1e8; --accent:#4fbf84; --accent-fg:#0b1a11;
+  --note:#2a2414; --note-line:#4d4125; --sub:#1c2a21; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.band{background:var(--band);color:var(--band-fg)}
+header .wrap{padding-block:36px 64px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(2rem,5vw,3.1rem);line-height:1.05;margin:0 0 12px;text-wrap:balance}
+header p{margin:0;max-width:60ch;opacity:.9}
+main .wrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:24px;margin-top:-36px;padding-block:0 48px;align-items:start}
+@media (max-width:820px){main .wrap{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;min-width:0}
+h2{font-family:var(--display);font-weight:600;font-size:1.25rem;margin:0}
+h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;margin:0;color:var(--muted);font-weight:700}
+.group{display:grid;gap:10px}
+.sub{background:var(--sub);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
+label{font-size:.82rem;font-weight:600;display:grid;gap:5px}
+input,select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:460px){.two{grid-template-columns:1fr}}
+.radios{display:flex;gap:18px;flex-wrap:wrap;font-size:.9rem}
+.radios label,.check{display:flex;align-items:center;gap:8px;font-weight:500}
+.radios input,.check input{width:auto}
+.hint{font-size:.78rem;color:var(--muted);margin:0}
+.calc{font-size:.8rem;color:var(--accent);font-weight:600;margin:0}
+.btn{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 16px;cursor:pointer;background:var(--accent);color:var(--accent-fg);text-decoration:none;display:inline-block;text-align:center}
+.btn.alt{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px dashed var(--accent);padding:8px 12px;font-size:.85rem;justify-self:start}
+.btn.small{padding:7px 11px;font-size:.82rem;background:transparent;color:var(--fg);border:1px solid var(--line)}
+.stop{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+aside{position:sticky;top:16px;display:grid;gap:16px}
+.total-head{background:var(--band);color:var(--band-fg);margin:-22px -22px 0;padding:12px 22px;border-radius:14px 14px 0 0;font-size:.75rem;font-weight:700;letter-spacing:.08em}
+.big{font-family:var(--display);font-weight:800;font-size:3rem;text-align:center;font-variant-numeric:tabular-nums;line-height:1}
+.big small{display:block;font-family:var(--body);font-size:.75rem;font-weight:500;color:var(--muted);margin-top:6px}
+.lines{display:grid}
+.lines div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:.9rem}
+.lines span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+.lines em{font-style:normal;color:var(--muted);font-size:.75rem}
+.note{background:var(--note);border:1px solid var(--note-line);border-radius:10px;padding:12px;font-size:.8rem}
+.gen{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+/* Document */
+#doc{grid-column:1/-1}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-weight:700;background:none;border:0;border-bottom:3px solid transparent;padding:8px 14px;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.mailbox{display:grid;gap:8px;background:var(--sub);border:1px solid var(--line);border-radius:10px;padding:14px}
+.mailbox code{font-size:.85rem;user-select:all;word-break:break-all}
+.sheet{background:#fff;color:#1a1a1a;border:1px solid var(--line);border-radius:6px;padding:32px;font-size:13px;overflow-x:auto}
+.sheet h2{font-size:1.6rem;color:#163a28}
+.sheet .top{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.sheet .box{border:1px solid #cfd8d1;border-radius:6px;padding:12px;min-width:200px;flex:1}
+.sheet .box b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#4b5a50;margin-bottom:4px}
+.sheet table{width:100%;border-collapse:collapse;margin-top:18px;font-variant-numeric:tabular-nums}
+.sheet th,.sheet td{border-bottom:1px solid #dfe5e0;padding:8px;text-align:left;vertical-align:top}
+.sheet th{background:#eef3ef;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.sheet td.n,.sheet th.n{text-align:right}
+.sheet .tot td{font-weight:700}
+.sheet .grand td{font-size:15px;background:#163a28;color:#fff}
+.sheet .paid{display:inline-block;border:2px solid #1f6b45;color:#1f6b45;font-weight:800;padding:4px 10px;border-radius:4px;transform:rotate(-4deg);letter-spacing:.08em}
+.sheet .legal{font-size:11px;color:#4b5a50;margin-top:14px}
+.sheet .sign{display:flex;gap:24px;margin-top:28px;flex-wrap:wrap}
+.sheet .sign div{flex:1;min-width:200px;border-top:1px solid #999;padding-top:6px;height:70px}
+.toast{font-size:.85rem;color:var(--accent);font-weight:600}
+@media print{
+  header.band,aside,.card.form,.actions,.tabs,.mailbox,.ex{display:none!important}
+  body{background:#fff} main .wrap{display:block;margin:0;padding:0}
+  #doc{border:0;padding:0} .sheet{border:0;padding:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<header class="band"><div class="wrap">
+  <h1>Simulateur de course VTC</h1>
+  <p>En VTC, le prix est <b>libre et convenu à l'avance</b>. Établissez un devis forfaitaire, puis la facture, à remettre ou envoyer à votre client.</p>
+</div></header>
+
+<main><div class="wrap">
+  <form class="card form" id="f" autocomplete="off">
+    <h2>Votre prestation</h2>
+    <div class="note">Renseignez le <b>trajet</b> et/ou la <b>mise à disposition</b> : les deux s'additionnent (TVA 10 % sur le trajet, 20 % sur la mise à disposition). <span class="ex">Les valeurs affichées sont un exemple.</span></div>
+
+    <div class="group">
+      <h3>Entreprise VTC</h3>
+      <label>Nom / raison sociale<input id="entNom" value="Martin VTC"></label>
+      <div class="two">
+        <label>SIRET<input id="entSiret" value="123 456 789 00012"></label>
+        <label>N° registre VTC (EVTC)<input id="entEvtc" value="EVTC031250001"></label>
+      </div>
+      <label>Adresse<input id="entAdr" value="12 avenue de Toulouse, 31470 Saint-Lys"></label>
+      <div class="two">
+        <label>Téléphone<input id="entTel" value="06 12 34 56 78"></label>
+        <label>E-mail<input id="entMail" type="email" value="contact@martin-vtc.fr"></label>
+      </div>
+      <div class="two">
+        <label>Véhicule (marque, immat.)<input id="entVeh" value="Toyota Camry · AB-123-CD"></label>
+        <label>N° TVA intracom. (facultatif)<input id="entTva" value="FR12123456789"></label>
+      </div>
+      <label class="check"><input type="checkbox" id="franchise"> Micro-entreprise en franchise de TVA (art. 293 B du CGI)</label>
+    </div>
+
+    <div class="group">
+      <h3>Client</h3>
+      <div class="two">
+        <label>Nom du client<input id="cliNom" value="Mme Durand"></label>
+        <label>Téléphone<input id="cliTel" value="07 65 43 21 09"></label>
+      </div>
+      <div class="two">
+        <label>E-mail du client<input id="cliMail" type="email" value="durand@example.com"></label>
+        <label>Nombre de passagers<input id="cliPax" type="number" min="1" max="8" value="2"></label>
+      </div>
+      <label>Adresse de facturation<input id="cliAdr" value="5 place de la Libération, 32000 Auch"></label>
+    </div>
+
+    <div class="group">
+      <h3>Itinéraire</h3>
+      <label>Adresse de départ<input id="depAdr" value="3 rue Charles Dubois"></label>
+      <div class="row"><input id="depCp" placeholder="CP" value="32000" aria-label="CP départ"><input id="depVille" placeholder="Ville de départ" value="Auch" aria-label="Ville de départ"></div>
+      <div id="stops" class="group"></div>
+      <button type="button" class="btn ghost" id="addStop">+ Ajouter un arrêt</button>
+      <label>Adresse d'arrivée<input id="arrAdr" value="Aéroport Toulouse-Blagnac, Hall B"></label>
+      <div class="row"><input id="arrCp" placeholder="CP" value="31700" aria-label="CP arrivée"><input id="arrVille" placeholder="Ville d'arrivée" value="Blagnac" aria-label="Ville d'arrivée"></div>
+    </div>
+
+    <div class="sub">
+      <h3>Tarification au kilomètre</h3>
+      <div class="radios">
+        <label><input type="radio" name="sens" id="sensAller" value="1" checked> Aller simple</label>
+        <label><input type="radio" name="sens" id="sensAR" value="2"> Aller-retour</label>
+      </div>
+      <div class="two">
+        <label>Distance aller (km)<input id="km" type="number" min="0" step="0.1" value="82"></label>
+        <label>Tarif au km HT (€/km)<input id="tkm" type="number" min="0" step="0.01" value="1.60"></label>
+      </div>
+      <p class="calc" id="calcKm"></p>
+    </div>
+
+    <div class="sub">
+      <h3>Mise à disposition</h3>
+      <div class="two">
+        <label>Tarif horaire HT (€/h)<input id="th" type="number" min="0" step="0.5" value="0"></label>
+        <label>Durée (heures)<input id="h" type="number" min="0" step="0.25" value="0"></label>
+      </div>
+      <p class="calc" id="calcMad"></p>
+    </div>
+
+    <label>Ou prix forfaitaire HT (€)<input id="forfait" type="number" min="0" step="0.01" value="0"></label>
+    <p class="hint">Prix libre : tarif au km <b>ou</b> forfait (les deux s'additionnent). TVA 10 % (transport de personnes).</p>
+
+    <div class="two">
+      <label>Options / suppléments HT (€)<input id="opt" type="number" min="0" step="0.01" value="15"></label>
+      <label>Détail des options<input id="optTxt" value="2 valises, accueil pancarte"></label>
+    </div>
+
+    <div class="group">
+      <h3>Dates</h3>
+      <label>Date / heure de réservation<input id="dRes" type="datetime-local"></label>
+      <label>Date / heure de prise en charge<input id="dPec" type="datetime-local"></label>
+      <label>Date / heure de dépose<input id="dDep" type="datetime-local"></label>
+    </div>
+
+    <div class="sub">
+      <h3>Facture</h3>
+      <div class="two">
+        <label>N° de facture<input id="facNo" value="F-2026-001"></label>
+        <label>Mode de paiement<select id="pay"><option>Carte bancaire</option><option>Espèces</option><option>Virement</option><option>Chèque</option></select></label>
+      </div>
+      <label class="check"><input type="checkbox" id="paid" checked> Facture acquittée (payée à la dépose)</label>
+      <p class="hint">Les factures doivent suivre une numérotation continue, sans trou. Le numéro passe au suivant après chaque facture générée.</p>
+    </div>
+  </form>
+
+  <aside>
+    <div class="card">
+      <div class="total-head">MONTANT</div>
+      <div class="big" id="ttc">0,00 €<small>TTC</small></div>
+      <div class="lines">
+        <div><span>Trajet HT <em id="eTraj">(TVA 10 %)</em></span><span id="lTraj"></span></div>
+        <div><span>Mise à disposition HT <em id="eMad">(TVA 20 %)</em></span><span id="lMad"></span></div>
+        <div><span>Options HT <em id="eOpt">(TVA 10 %)</em></span><span id="lOpt"></span></div>
+        <div><span>Total HT</span><span id="lHt"></span></div>
+        <div><span>TVA 10 %</span><span id="lT10"></span></div>
+        <div><span>TVA 20 %</span><span id="lT20"></span></div>
+      </div>
+      <div class="note" id="tvaNote">Le trajet est soumis à la TVA à 10 %, la mise à disposition à 20 %. Le devis a valeur d'engagement une fois accepté par le client.</div>
+      <div class="gen">
+        <button class="btn" id="genDevis" type="button">Générer le devis</button>
+        <button class="btn alt" id="genFac" type="button">Générer la facture</button>
+      </div>
+    </div>
+  </aside>
+
+  <section class="card" id="doc" hidden>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabDevis" aria-selected="true">Devis</button>
+      <button type="button" role="tab" id="tabFac" aria-selected="false">Facture</button>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" id="print">Imprimer / PDF</button>
+      <a class="btn alt" id="mail" href="#">Envoyer par e-mail</a>
+      <button class="btn small" type="button" id="copy">Copier le texte</button>
+      <span class="toast" id="toast" role="status"></span>
+    </div>
+    <div class="mailbox">
+      <span class="hint">Le bouton e-mail ouvre votre messagerie avec le texte déjà rempli. Pour joindre le PDF, enregistrez-le d'abord avec « Imprimer / PDF » puis ajoutez-le au message. Si rien ne s'ouvre, copiez le texte et envoyez-le à :</span>
+      <code id="mailTo"></code>
+    </div>
+    <div class="sheet" id="sheet"></div>
+  </section>
+</div></main>
+
+<script>
+const $ = id => document.getElementById(id);
+const num = id => Math.max(0, parseFloat(($(id).value||'').replace(',', '.')) || 0);
+const eur = n => n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+const esc = s => String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate = v => v ? new Date(v).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}) : '—';
+const fmtDay = d => d.toLocaleDateString('fr-FR');
+const round2 = n => Math.round(n*100)/100;
+const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+// Pure calculation
+function compute(i){
+  const kmTot = i.km * i.sens;
+  const trajet = round2(kmTot * i.tkm + i.forfait);
+  const mad = round2(i.th * i.h);
+  const opt = round2(i.opt);
+  const ht = round2(trajet + mad + opt);
+  const t10 = i.franchise ? 0 : round2((trajet + opt) * 0.10);
+  const t20 = i.franchise ? 0 : round2(mad * 0.20);
+  return {kmTot, trajet, mad, opt, ht, t10, t20, ttc: round2(ht + t10 + t20)};
+}
+function inputs(){
+  return {km:num('km'), tkm:num('tkm'), sens:$('sensAR').checked?2:1, forfait:num('forfait'), th:num('th'), h:num('h'), opt:num('opt'), franchise:$('franchise').checked};
+}
+
+let mode = 'devis';
+function update(){
+  const i = inputs(), r = compute(i);
+  $('calcKm').textContent = `Trajet = ${i.km} km × ${i.sens} × ${eur(i.tkm)}/km = ${eur(r.kmTot*i.tkm)} HT` + (i.forfait ? ` + forfait ${eur(i.forfait)}` : '');
+  $('calcMad').textContent = `Mise à disposition = ${eur(i.th)}/h × ${i.h} h = ${eur(r.mad)} HT`;
+  $('ttc').innerHTML = eur(r.ttc) + `<small>${i.franchise ? 'Net (TVA non applicable)' : 'TTC'}</small>`;
+  $('lTraj').textContent = eur(r.trajet); $('lMad').textContent = eur(r.mad); $('lOpt').textContent = eur(r.opt);
+  $('lHt').textContent = eur(r.ht); $('lT10').textContent = eur(r.t10); $('lT20').textContent = eur(r.t20);
+  ['eTraj','eOpt'].forEach(k=>$(k).textContent = i.franchise ? '' : '(TVA 10 %)');
+  $('eMad').textContent = i.franchise ? '' : '(TVA 20 %)';
+  $('tvaNote').textContent = i.franchise
+    ? 'Franchise en base : aucune TVA n\'est facturée. La mention « TVA non applicable, art. 293 B du CGI » figure sur le devis et la facture.'
+    : 'Le trajet est soumis à la TVA à 10 %, la mise à disposition à 20 %. Le devis a valeur d\'engagement une fois accepté par le client.';
+  if (!$('doc').hidden) render();
+}
+
+// Stops
+let stopN = 0;
+$('addStop').onclick = () => {
+  stopN++;
+  const d = document.createElement('div'); d.className = 'stop';
+  d.innerHTML = `<label>Arrêt ${stopN}<input id="stop${stopN}" class="stopIn" placeholder="Adresse, CP, ville"></label><button type="button" class="btn small" aria-label="Supprimer l'arrêt">✕</button>`;
+  d.querySelector('button').onclick = () => { d.remove(); update(); };
+  $('stops').appendChild(d);
+  d.querySelector('input').focus();
+};
+
+function devisNo(){
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  return `D-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+function nextFacNo(no){
+  const m = no.match(/^(.*?)(\d+)$/);
+  return m ? m[1] + String(+m[2] + 1).padStart(m[2].length, '0') : no;
+}
+let currentDevisNo = devisNo(), currentFacNo = '', facDate = new Date();
+
+function lines(i, r){
+  const v = id => esc($(id).value);
+  const tva = t => i.franchise ? '—' : t;
+  const rows = [];
+  if (r.trajet) rows.push([`Transport de personnes ${i.sens===2?'aller-retour':'aller simple'} : ${v('depVille')} → ${v('arrVille')}, ${i.km} km${i.sens===2?' × 2':''}${i.tkm? ' × '+eur(i.tkm)+'/km':''}${i.forfait? ' + forfait '+eur(i.forfait):''}`, tva('10 %'), r.trajet]);
+  if (r.mad) rows.push([`Mise à disposition : ${i.h} h × ${eur(i.th)}/h`, tva('20 %'), r.mad]);
+  if (r.opt) rows.push([`Options / suppléments${$('optTxt').value? ' : '+v('optTxt'):''}`, tva('10 %'), r.opt]);
+  return rows;
+}
+
+function render(){
+  const i = inputs(), r = compute(i), isFac = mode === 'facture';
+  const v = id => esc($(id).value);
+  const stops = [...document.querySelectorAll('.stopIn')].map(x => x.value.trim()).filter(Boolean);
+  const rows = lines(i, r);
+  const head = isFac
+    ? `<h2>FACTURE</h2><div>N° ${esc(currentFacNo)}</div><div>Date d'émission : ${fmtDay(facDate)}</div><div>Date de la prestation : ${fmtDate($('dPec').value)}</div><div>Réf. devis : ${currentDevisNo}</div>`
+    : `<h2>DEVIS</h2><div>N° ${currentDevisNo}</div><div>Établi le ${fmtDate($('dRes').value)}</div><div>Valable 30 jours</div>`;
+  const legal = isFac
+    ? `${i.franchise ? 'TVA non applicable, art. 293 B du CGI. ' : ''}Paiement : ${v('pay')}${$('paid').checked ? ', reçu le ' + fmtDay(new Date($('dDep').value || Date.now())) : ', à réception de facture'}. Pas d'escompte pour paiement anticipé. En cas de retard de paiement : pénalités au taux de 3 fois le taux d'intérêt légal et, pour les clients professionnels, indemnité forfaitaire de recouvrement de 40 €.`
+    : `${i.franchise ? 'TVA non applicable, art. 293 B du CGI. ' : ''}Prix forfaitaire convenu à l'avance, sur réservation préalable (art. L3122-1 du Code des transports). Paiement prévu : ${v('pay')}.`;
+  $('sheet').innerHTML = `
+    <div class="top">
+      <div>${head}${isFac && $('paid').checked ? '<div style="margin-top:10px"><span class="paid">ACQUITTÉE</span></div>' : ''}</div>
+      <div class="box"><b>Prestataire</b>${v('entNom')}<br>${v('entAdr')}<br>Tél. ${v('entTel')} · ${v('entMail')}<br>SIRET ${v('entSiret')}<br>Registre VTC : ${v('entEvtc')}${!i.franchise && $('entTva').value ? '<br>TVA : '+v('entTva') : ''}</div>
+      <div class="box"><b>Client</b>${v('cliNom')}<br>${v('cliAdr')}<br>Tél. ${v('cliTel')}<br>${v('cliMail')}<br>Passagers : ${v('cliPax')}</div>
+    </div>
+    <table><tbody>
+      <tr><th>Prise en charge</th><td>${v('depAdr')}, ${v('depCp')} ${v('depVille')} — ${fmtDate($('dPec').value)}</td></tr>
+      ${stops.map((s,k)=>`<tr><th>Arrêt ${k+1}</th><td>${esc(s)}</td></tr>`).join('')}
+      <tr><th>Destination</th><td>${v('arrAdr')}, ${v('arrCp')} ${v('arrVille')} — ${isFac ? 'déposé' : 'dépose estimée'} ${fmtDate($('dDep').value)}</td></tr>
+      <tr><th>Véhicule</th><td>${v('entVeh')}</td></tr>
+    </tbody></table>
+    <table><thead><tr><th>Désignation</th><th class="n">TVA</th><th class="n">Montant HT</th></tr></thead><tbody>
+      ${rows.map(x=>`<tr><td>${x[0]}</td><td class="n">${x[1]}</td><td class="n">${eur(x[2])}</td></tr>`).join('') || '<tr><td colspan="3">Aucune prestation saisie</td></tr>'}
+      <tr class="tot"><td colspan="2">Total HT</td><td class="n">${eur(r.ht)}</td></tr>
+      ${r.t10?`<tr><td colspan="2">TVA 10 %</td><td class="n">${eur(r.t10)}</td></tr>`:''}
+      ${r.t20?`<tr><td colspan="2">TVA 20 %</td><td class="n">${eur(r.t20)}</td></tr>`:''}
+      <tr class="grand"><td colspan="2">${isFac ? 'NET À PAYER' : 'TOTAL'} ${i.franchise ? '' : 'TTC'}</td><td class="n">${eur(r.ttc)}</td></tr>
+    </tbody></table>
+    <p class="legal">${legal}</p>
+    ${isFac ? '' : '<div class="sign"><div>Signature du chauffeur</div><div>Bon pour accord, signature du client</div></div>'}`;
+  updateMail(i, r);
+}
+
+function plainText(i, r){
+  const isFac = mode === 'facture', g = id => $(id).value;
+  const rows = lines(i, r).map(x => `- ${x[0].replace(/&amp;/g,'&')} : ${eur(x[2])} HT${i.franchise?'':' (TVA '+x[1]+')'}`).join('\n');
+  return [
+    `Bonjour ${g('cliNom')},`, '',
+    isFac ? `Veuillez trouver ci-dessous votre facture n° ${currentFacNo} du ${fmtDay(facDate)}.` : `Veuillez trouver ci-dessous notre devis n° ${currentDevisNo} pour votre course.`, '',
+    `Prise en charge : ${g('depAdr')}, ${g('depCp')} ${g('depVille')} le ${fmtDate(g('dPec'))}`,
+    `Destination : ${g('arrAdr')}, ${g('arrCp')} ${g('arrVille')}`, '',
+    rows,
+    `Total HT : ${eur(r.ht)}`,
+    i.franchise ? 'TVA non applicable, art. 293 B du CGI' : `TVA : ${eur(r.t10 + r.t20)}`,
+    `${isFac ? 'Net à payer' : 'Total'} : ${eur(r.ttc)}${isFac && $('paid').checked ? ' (acquittée, payée par ' + g('pay').toLowerCase() + ')' : ''}`, '',
+    'Cordialement,', g('entNom'), g('entTel'), `SIRET ${g('entSiret')} · Registre VTC ${g('entEvtc')}`
+  ].join('\n');
+}
+function updateMail(i, r){
+  const to = $('cliMail').value.trim();
+  const subj = mode === 'facture' ? `Facture ${currentFacNo} - ${$('entNom').value}` : `Devis ${currentDevisNo} - ${$('entNom').value}`;
+  $('mail').href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(plainText(i, r))}`;
+  $('mailTo').textContent = to || 'Ajoutez l\'e-mail du client dans le formulaire';
+}
+
+function show(m){
+  mode = m;
+  $('tabDevis').setAttribute('aria-selected', m==='devis'); $('tabFac').setAttribute('aria-selected', m==='facture');
+  $('doc').hidden = false; render();
+}
+$('genDevis').onclick = () => { currentDevisNo = devisNo(); show('devis'); $('doc').scrollIntoView({behavior:'smooth'}); };
+$('genFac').onclick = () => {
+  currentFacNo = $('facNo').value.trim() || 'F-0001'; facDate = new Date();
+  $('facNo').value = nextFacNo(currentFacNo); store.set('vtcNextFac', $('facNo').value);
+  show('facture'); $('doc').scrollIntoView({behavior:'smooth'});
+};
+$('tabDevis').onclick = () => show('devis');
+$('tabFac').onclick = () => { if (!currentFacNo) { $('genFac').click(); } else show('facture'); };
+
+$('print').onclick = () => window.print();
+if (window.self !== window.top) $('print').hidden = true; // printing only works when the page is opened directly
+function toast(m){ $('toast').textContent = m; setTimeout(()=>$('toast').textContent='',2500); }
+function selectSheet(){ const rg=document.createRange(); rg.selectNodeContents($('sheet')); const s=getSelection(); s.removeAllRanges(); s.addRange(rg); }
+$('copy').onclick = () => {
+  const t = plainText(inputs(), compute(inputs()));
+  try { navigator.clipboard.writeText(t).then(()=>toast('Texte copié'), ()=>{ selectSheet(); toast('Texte sélectionné, faites Ctrl+C'); }); }
+  catch(e){ selectSheet(); toast('Texte sélectionné, faites Ctrl+C'); }
+};
+
+// Example dates + remembered invoice number
+(function(){
+  const p=n=>String(n).padStart(2,'0'), f=d=>`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  const now=new Date(), t=new Date(now); t.setDate(t.getDate()+1); t.setHours(8,0,0,0);
+  const e=new Date(t); e.setMinutes(75);
+  $('dRes').value=f(now); $('dPec').value=f(t); $('dDep').value=f(e);
+  const saved = store.get('vtcNextFac'); if (saved) $('facNo').value = saved;
+})();
+
+$('f').addEventListener('input', update);
+$('f').addEventListener('change', update);
+$('f').addEventListener('submit', e => e.preventDefault());
+update();
+</script>
