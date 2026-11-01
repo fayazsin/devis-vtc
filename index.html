@@ -220,6 +220,7 @@
     <div class="actions noprint">
       <button class="btn" type="button" id="dPrint">Imprimer / PDF</button>
       <button class="btn small" type="button" id="dNew" title="Efface le client, les trajets et la mise à disposition (l'entreprise et les tarifs sont conservés)">↻ Nouveau devis</button>
+      <a class="btn small" id="dMaps" target="_blank" rel="noopener" hidden>🗺 Ouvrir dans Google Maps</a>
       <a class="btn small" id="dModel" href="modeles/Prestige_VTC_Facture.pdf" target="_blank" rel="noopener" hidden>★ Modèle de facture (PDF)</a>
     </div>
     <div class="psheet" id="psheet"></div>
@@ -285,6 +286,7 @@
       </div>
       <div class="route">
         <button type="button" class="btn small" id="calcRoute">Calculer la distance</button>
+        <a class="btn small" id="pMaps" target="_blank" rel="noopener" hidden>🗺 Google Maps</a>
         <span class="hint" id="routeInfo" role="status">Choisissez les adresses dans la liste : la distance est calculée automatiquement (vous pouvez la corriger).</span>
       </div>
       <p class="calc" id="calcKm"></p>
@@ -403,8 +405,19 @@
     $('tvaNote').textContent = i.franchise
             ? 'Franchise en base : aucune TVA n\'est facturée. La mention « TVA non applicable, art. 293 B du CGI » figure sur le devis et la facture.'
             : 'Le trajet est soumis à la TVA à 10 %, la mise à disposition à 20 %. Le devis a valeur d\'engagement une fois accepté par le client.';
+    setMaps('pMaps', routePoints().map(p => p.text));
     if (!$('doc').hidden) render();
   }
+
+  // Google Maps directions: first address = start, last = destination, everything between = stops
+  function gmaps(addrs){
+    const a = addrs.map(s => s.trim()).filter(Boolean).filter((s, i, arr) => i === 0 || s.toLowerCase() !== arr[i-1].toLowerCase());
+    if (a.length < 2) return '';
+    const p = new URLSearchParams({api: '1', origin: a[0], destination: a[a.length-1], travelmode: 'driving'});
+    if (a.length > 2) p.set('waypoints', a.slice(1, -1).join('|'));
+    return 'https://www.google.com/maps/dir/?' + p;
+  }
+  function setMaps(id, addrs){ const url = gmaps(addrs); $(id).hidden = !url; if (url) $(id).href = url; }
 
   // Stops
   let stopN = 0;
@@ -695,6 +708,7 @@
       <div><span>TVA ${nf(c.tvaP)} %</span><span>${eur(c.tva)}</span></div>
       <div><span><b>Total TTC</b></span><span>${eur(c.ttc)}</span></div>`;
 
+    setMaps('dMaps', c.tr.flatMap(t => [t.d, t.a]));
     const shown = tpl ? c.tr : used;
     const trRows = shown.map(t => `<tr><td>${ord(t.k)} transfert : Départ de : ${t.d ? esc(t.d) : bl(190)}<br>À : ${t.a ? esc(t.a) : bl(260)}<br>Distance : ${t.km ? nf(t.km) : bl(45)} km</td><td class="n">${amt(t.amt, t.km > 0)}</td></tr>`).join('');
     const madRow = (c.madOn || tpl) ? `<tr><td>MISE À DISPOSITION : forfait minimum de 1 heure : ${nf(c.madRate)} € H.T.<br>Toute heure commencée et non terminée est facturée dans son intégralité.<br>Heures supplémentaires : ${c.madOn ? c.extra : bl(45)}<br>Lieu : ${$('dMadLieu').value.trim() ? v('dMadLieu') : bl(260)}</td><td class="n">${amt(c.mad, c.madOn)}</td></tr>` : '';
