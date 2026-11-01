@@ -87,6 +87,13 @@
   .sheet .sign{display:flex;gap:24px;margin-top:28px;flex-wrap:wrap}
   .sheet .sign div{flex:1;min-width:200px;border-top:1px solid #999;padding-top:6px;height:70px}
   .toast{font-size:.85rem;color:var(--accent);font-weight:600}
+  /* Address autocomplete */
+  .ac{position:relative}
+  .ac ul{position:absolute;left:0;right:0;top:100%;z-index:20;margin:4px 0 0;padding:4px;list-style:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.14);max-height:280px;overflow:auto}
+  .ac li{padding:8px 10px;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:500}
+  .ac li small{display:block;color:var(--muted);font-size:.75rem;font-weight:400}
+  .ac li[aria-selected="true"],.ac li:hover{background:var(--sub)}
+  .route{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   @media print{
     header.band,aside,.card.form,.actions,.tabs,.mailbox,.ex{display:none!important}
     body{background:#fff} main .wrap{display:block;margin:0;padding:0}
@@ -157,7 +164,10 @@
         <label>Distance aller (km)<input id="km" type="number" min="0" step="0.1" placeholder="ex. 38"></label>
         <label>Tarif au km HT (€/km)<input id="tkm" type="number" min="0" step="0.01" placeholder="ex. 1,75"></label>
       </div>
-      <p class="hint">Saisissez la distance (Google Maps, Waze…) et votre tarif au km.</p>
+      <div class="route">
+        <button type="button" class="btn small" id="calcRoute">Calculer la distance</button>
+        <span class="hint" id="routeInfo" role="status">Choisissez les adresses dans la liste : la distance est calculée automatiquement (vous pouvez la corriger).</span>
+      </div>
       <p class="calc" id="calcKm"></p>
     </div>
 
@@ -282,10 +292,97 @@
     stopN++;
     const d = document.createElement('div'); d.className = 'stop';
     d.innerHTML = `<label>Arrêt ${stopN}<input id="stop${stopN}" class="stopIn" placeholder="Adresse, CP, ville"></label><button type="button" class="btn small" aria-label="Supprimer l'arrêt">✕</button>`;
-    d.querySelector('button').onclick = () => { d.remove(); update(); };
+    d.querySelector('button').onclick = () => { d.remove(); update(); route(); };
     $('stops').appendChild(d);
-    d.querySelector('input').focus();
+    const inp = d.querySelector('input');
+    autocomplete(inp, it => { inp.value = [it.name, it.cp + ' ' + it.ville].filter(s => s.trim()).join(', '); });
+    inp.focus();
   };
+
+  // Address search & routing: IGN Géoplateforme (free, no API key)
+  const GEO = 'https://data.geopf.fr/geocodage/search', ROUTE = 'https://data.geopf.fr/navigation/itineraire';
+  const first = v => Array.isArray(v) ? v[0] : v;
+  function place(f){
+    const p = f.properties, [lon, lat] = f.geometry.coordinates;
+    const name = p._type === 'poi' ? (p.toponym || first(p.name)) : (p.type === 'municipality' ? '' : p.name);
+    return {name: name || '', cp: first(p.postcode) || '', ville: first(p.city) || '', ll: lon + ',' + lat};
+  }
+  async function geocode(q, limit){
+    const r = await fetch(`${GEO}?q=${encodeURIComponent(q)}&index=address,poi&limit=${limit}`);
+    if (!r.ok) throw new Error('Recherche d\'adresse indisponible');
+    return ((await r.json()).features || []).map(place);
+  }
+  function autocomplete(input, onPick){
+    const box = document.createElement('div'); box.className = 'ac';
+    input.replaceWith(box); box.appendChild(input);
+    const ul = document.createElement('ul'); ul.setAttribute('role', 'listbox'); ul.hidden = true; box.appendChild(ul);
+    input.setAttribute('role', 'combobox'); input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-expanded', 'false');
+    let items = [], sel = -1, timer, seq = 0;
+    const close = () => { ul.hidden = true; input.setAttribute('aria-expanded', 'false'); sel = -1; };
+    const mark = () => [...ul.children].forEach((li, k) => li.setAttribute('aria-selected', k === sel));
+    const pick = k => { const it = items[k]; if (!it) return; close(); onPick(it); input.dataset.ll = it.ll; update(); route(); };
+    input.addEventListener('input', () => {
+      delete input.dataset.ll; clearTimeout(timer);
+      const q = input.value.trim();
+      if (q.length < 3) { seq++; return close(); }
+      timer = setTimeout(async () => {
+        const my = ++seq;
+        try { items = await geocode(q, 6); } catch(e) { items = []; }
+        if (my !== seq) return;
+        ul.innerHTML = items.map(it => `<li role="option">${esc(it.name || it.ville)}<small>${esc(it.cp + ' ' + it.ville)}</small></li>`).join('');
+        [...ul.children].forEach((li, k) => li.onclick = () => pick(k));
+        sel = -1; ul.hidden = !items.length; input.setAttribute('aria-expanded', String(!!items.length));
+      }, 250);
+    });
+    ul.addEventListener('mousedown', e => e.preventDefault()); // keep focus in the input
+    input.addEventListener('keydown', e => {
+      if (ul.hidden) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length; mark(); }
+      else if (e.key === 'Enter' && sel >= 0) { e.preventDefault(); pick(sel); }
+      else if (e.key === 'Escape') close();
+    });
+    input.addEventListener('blur', close);
+  }
+  const fillEnd = (adr, cp, ville) => it => { $(adr).value = it.name; $(cp).value = it.cp; $(ville).value = it.ville; };
+  autocomplete($('depAdr'), fillEnd('depAdr', 'depCp', 'depVille'));
+  autocomplete($('arrAdr'), fillEnd('arrAdr', 'arrCp', 'arrVille'));
+  // Typing a postcode or city by hand invalidates the picked coordinates
+  [['depCp','depAdr'], ['depVille','depAdr'], ['arrCp','arrAdr'], ['arrVille','arrAdr']].forEach(([k, a]) => $(k).addEventListener('input', () => delete $(a).dataset.ll));
+
+  // Route points in order; the coordinates live on the address input (data-ll)
+  function routePoints(){
+    const end = (a, c, v) => ({el: $(a), text: [$(a).value, $(c).value, $(v).value].join(' ').trim()});
+    const stops = [...document.querySelectorAll('.stopIn')].map(el => ({el, text: el.value.trim()})).filter(p => p.text);
+    return [end('depAdr', 'depCp', 'depVille'), ...stops, end('arrAdr', 'arrCp', 'arrVille')];
+  }
+  let routeSeq = 0;
+  async function route(manual){
+    const pts = routePoints(), info = $('routeInfo'), my = ++routeSeq;
+    if (!pts[0].text || !pts[pts.length-1].text) { if (manual) info.textContent = 'Renseignez le départ et l\'arrivée.'; return; }
+    // Automatic mode only runs once every point was picked from the list; the button geocodes typed text too
+    if (!manual && pts.some(p => !p.el.dataset.ll)) return;
+    info.textContent = 'Calcul de l\'itinéraire…';
+    try {
+      for (const p of pts) if (!p.el.dataset.ll) {
+        const [best] = await geocode(p.text, 1);
+        if (!best) throw new Error('Adresse introuvable : ' + p.text);
+        p.el.dataset.ll = best.ll;
+      }
+      const ll = pts.map(p => p.el.dataset.ll), mid = ll.slice(1, -1);
+      const url = `${ROUTE}?resource=bdtopo-valhalla&profile=car&optimization=fastest&start=${ll[0]}&end=${ll[ll.length-1]}`
+              + (mid.length ? '&intermediates=' + encodeURIComponent(mid.join('|')) : '') + '&distanceUnit=kilometer&timeUnit=minute&getSteps=false';
+      const r = await fetch(url), d = await r.json();
+      if (!r.ok || typeof d.distance !== 'number') throw new Error('Itinéraire introuvable');
+      if (my !== routeSeq) return;
+      $('km').value = Math.round(d.distance * 10) / 10;
+      const min = Math.round(d.duration), dur = min >= 60 ? `${Math.floor(min/60)} h ${String(min%60).padStart(2,'0')}` : `${min} min`;
+      info.textContent = `Itinéraire calculé : ${$('km').value.replace('.', ',')} km aller, environ ${dur} de route${mid.length ? ` (${mid.length} arrêt${mid.length>1?'s':''})` : ''}.`;
+      update();
+    } catch(e) {
+      if (my === routeSeq) info.textContent = (e.message || 'Erreur réseau') + '. Saisissez la distance à la main.';
+    }
+  }
+  $('calcRoute').onclick = () => route(true);
 
   function devisNo(){
     const d = new Date(), p = n => String(n).padStart(2,'0');
