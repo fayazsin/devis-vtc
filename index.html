@@ -738,6 +738,7 @@
     if (!$('dDate').value) $('dDate').value = t.iso;
   }
   $('dNew').onclick = () => {
+    if (!confirm(`Effacer ${docType === 'facture' ? 'cette facture' : 'ce devis'} et en commencer un nouveau ?\n\nLe client, les transferts et la mise à disposition seront effacés. L'entreprise et les tarifs sont conservés.`)) return;
     const t = todayInfo(), cur = $('dNo').value.trim() || $('dNo').placeholder;
     $('dNo').value = cur.startsWith(t.no.slice(0, -3)) ? nextFacNo(cur) : t.no;
     $('dDate').value = t.iso;
@@ -786,6 +787,7 @@
 
   // Clear everything except the company block, so the next client starts from a blank form
   $('resetF').onclick = () => {
+    if (!confirm('Effacer cette prestation et en commencer une nouvelle ?\n\nLe client, l\'itinéraire, les montants et les dates seront effacés. Les informations de l\'entreprise sont conservées.')) return;
     const keep = ['entNom','entSiret','entEvtc','entAdr','entTel','entMail','entVeh','entTva','franchise','tkm','th','pay'];
     $('f').querySelectorAll('input, select').forEach(e => {
       if (keep.includes(e.id)) return;
