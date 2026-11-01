@@ -173,6 +173,7 @@
     <div class="group">
       <h3>Transferts</h3>
       <div id="dTransfers" class="group"></div>
+      <p class="calc" id="dTrTot" role="status"></p>
     </div>
 
     <div class="sub">
@@ -680,13 +681,16 @@
     const rate = num('dRate'), min = num('dMin'), seuil = num('dSeuil'), madRate = num('dMadRate');
     const tr = TR.map(k => {
       const km = num(`t${k}km`), d = $(`t${k}d`).value.trim(), a = $(`t${k}a`).value.trim();
-      return {k, d, a, km, amt: km > 0 ? round2(km <= seuil ? min : km * rate) : 0, used: !!(d || a || km)};
+      return {k, d, a, km, used: !!(d || a || km)};
     });
     // Total duration: 1 h minimum, every started hour is billed in full
     const madOn = $('dMad').checked, hours = Math.max(1, Math.ceil(num('dMadT') - 1e-9)), extra = hours - 1;
     const mad = madOn ? round2(madRate * hours) : 0;
-    const ht = round2(tr.reduce((s, t) => s + t.amt, 0) + mad), tvaP = num('dTva'), tva = round2(ht * tvaP / 100);
-    return {rate, min, seuil, madRate, tr, madOn, hours, extra, mad, ht, tvaP, tva, ttc: round2(ht + tva)};
+    // Transfers are priced once, on the total distance: minimum fare up to the threshold, per-km rate above
+    const kmTot = round2(tr.reduce((s, t) => s + t.km, 0));
+    const trAmt = kmTot > 0 ? round2(kmTot <= seuil ? min : kmTot * rate) : 0;
+    const ht = round2(trAmt + mad), tvaP = num('dTva'), tva = round2(ht * tvaP / 100);
+    return {rate, min, seuil, madRate, tr, kmTot, trAmt, madOn, hours, extra, mad, ht, tvaP, tva, ttc: round2(ht + tva)};
   }
 
   function docRender(){
@@ -698,11 +702,12 @@
     const amt = (n, show) => show ? eur(n) : bl(80) + ' €';
 
     // Form-side helpers
-    c.tr.forEach(t => $(`t${t.k}amt`).textContent = t.km > 0
-      ? (t.km <= c.seuil ? `≤ ${nf(c.seuil)} km : forfait ${eur(c.min)} HT` : `${nf(t.km)} km × ${eur(c.rate)} = ${eur(t.amt)} HT`) : '');
+    const trCalc = c.kmTot <= c.seuil ? `${nf(c.kmTot)} km au total (≤ ${nf(c.seuil)} km) : forfait ${eur(c.min)} HT` : `${nf(c.kmTot)} km au total × ${eur(c.rate)} = ${eur(c.trAmt)} HT`;
+    c.tr.forEach(t => $(`t${t.k}amt`).textContent = t.km > 0 ? `${nf(t.km)} km` : '');
+    $('dTrTot').textContent = c.kmTot > 0 ? trCalc : '';
     $('dMadCalc').textContent = c.madOn ? `${nf(num('dMadT'))} h → facturé ${c.hours} h (dont ${c.extra} h sup.) × ${eur(c.madRate)} = ${eur(c.mad)} HT` : '';
     $('dSum').innerHTML = `
-      <div><span>Transferts HT</span><span>${eur(round2(c.ht - c.mad))}</span></div>
+      <div><span>Transferts HT (${nf(c.kmTot)} km)</span><span>${eur(c.trAmt)}</span></div>
       <div><span>Mise à disposition HT</span><span>${eur(c.mad)}</span></div>
       <div><span>Total HT</span><span>${eur(c.ht)}</span></div>
       <div><span>TVA ${nf(c.tvaP)} %</span><span>${eur(c.tva)}</span></div>
@@ -710,7 +715,8 @@
 
     setMaps('dMaps', c.tr.flatMap(t => [t.d, t.a]));
     const shown = tpl ? c.tr : used;
-    const trRows = shown.map(t => `<tr><td>${ord(t.k)} transfert : Départ de : ${t.d ? esc(t.d) : bl(190)}<br>À : ${t.a ? esc(t.a) : bl(260)}<br>Distance : ${t.km ? nf(t.km) : bl(45)} km</td><td class="n">${amt(t.amt, t.km > 0)}</td></tr>`).join('');
+    const trRows = shown.map(t => `<tr><td>${ord(t.k)} transfert : Départ de : ${t.d ? esc(t.d) : bl(190)}<br>À : ${t.a ? esc(t.a) : bl(260)}<br>Distance : ${t.km ? nf(t.km) : bl(45)} km</td><td class="n">${tpl ? amt(0, false) : ''}</td></tr>`).join('')
+      + (!tpl && c.kmTot > 0 ? `<tr class="b"><td>Total transferts : ${trCalc.replace(/ HT$/, '').replace(/ = .*$/, '')}</td><td class="n">${eur(c.trAmt)}</td></tr>` : '');
     const madRow = (c.madOn || tpl) ? `<tr><td>MISE À DISPOSITION : forfait minimum de 1 heure : ${nf(c.madRate)} € H.T.<br>Toute heure commencée et non terminée est facturée dans son intégralité.<br>Heures supplémentaires : ${c.madOn ? c.extra : bl(45)}<br>Lieu : ${$('dMadLieu').value.trim() ? v('dMadLieu') : bl(260)}</td><td class="n">${amt(c.mad, c.madOn)}</td></tr>` : '';
     const tarifRow = shown.length ? `<tr><td>TRANSFERT : tarif au km : ${eur(c.rate)}<br>Forfait minimum jusqu'à ${nf(c.seuil)} km inclus : ${eur(c.min)}</td><td></td></tr>` : '';
     const att = $('dAtt').value.trim() ? v('dAtt') : (isF ? bl(240) + '\n' + bl(240) : bl(300));
