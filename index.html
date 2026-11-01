@@ -179,7 +179,7 @@
       <h3>Mise à disposition</h3>
       <label class="check"><input type="checkbox" id="dMad"> Inclure une mise à disposition</label>
       <div class="two">
-        <label>Heures supplémentaires<input id="dMadH" type="number" min="0" step="0.25" placeholder="0"></label>
+        <label>Durée totale (heures)<input id="dMadT" type="number" min="0" step="0.25" placeholder="ex. 1,5"></label>
         <label>Lieu<input id="dMadLieu" placeholder="ex. Toulouse centre"></label>
       </div>
       <p class="calc" id="dMadCalc"></p>
@@ -666,10 +666,11 @@
       const km = num(`t${k}km`), d = $(`t${k}d`).value.trim(), a = $(`t${k}a`).value.trim();
       return {k, d, a, km, amt: km > 0 ? round2(km <= seuil ? min : km * rate) : 0, used: !!(d || a || km)};
     });
-    const madOn = $('dMad').checked, extra = Math.ceil(num('dMadH'));
-    const mad = madOn ? round2(madRate * (1 + extra)) : 0;
+    // Total duration: 1 h minimum, every started hour is billed in full
+    const madOn = $('dMad').checked, hours = Math.max(1, Math.ceil(num('dMadT') - 1e-9)), extra = hours - 1;
+    const mad = madOn ? round2(madRate * hours) : 0;
     const ht = round2(tr.reduce((s, t) => s + t.amt, 0) + mad), tvaP = num('dTva'), tva = round2(ht * tvaP / 100);
-    return {rate, min, seuil, madRate, tr, madOn, extra, mad, ht, tvaP, tva, ttc: round2(ht + tva)};
+    return {rate, min, seuil, madRate, tr, madOn, hours, extra, mad, ht, tvaP, tva, ttc: round2(ht + tva)};
   }
 
   function docRender(){
@@ -683,7 +684,7 @@
     // Form-side helpers
     c.tr.forEach(t => $(`t${t.k}amt`).textContent = t.km > 0
       ? (t.km <= c.seuil ? `≤ ${nf(c.seuil)} km : forfait ${eur(c.min)} HT` : `${nf(t.km)} km × ${eur(c.rate)} = ${eur(t.amt)} HT`) : '');
-    $('dMadCalc').textContent = c.madOn ? `${eur(c.madRate)} × (1 h + ${c.extra} h sup.) = ${eur(c.mad)} HT` : '';
+    $('dMadCalc').textContent = c.madOn ? `${nf(num('dMadT'))} h → facturé ${c.hours} h (dont ${c.extra} h sup.) × ${eur(c.madRate)} = ${eur(c.mad)} HT` : '';
     $('dSum').innerHTML = `
       <div><span>Transferts HT</span><span>${eur(round2(c.ht - c.mad))}</span></div>
       <div><span>Mise à disposition HT</span><span>${eur(c.mad)}</span></div>
@@ -737,7 +738,7 @@
     const t = todayInfo(), cur = $('dNo').value.trim() || $('dNo').placeholder;
     $('dNo').value = cur.startsWith(t.no.slice(0, -3)) ? nextFacNo(cur) : t.no;
     $('dDate').value = t.iso;
-    ['dAtt', 'dMadH', 'dMadLieu', ...TR.flatMap(k => [`t${k}d`, `t${k}a`, `t${k}km`])].forEach(id => { $(id).value = ''; delete $(id).dataset.ll; });
+    ['dAtt', 'dMadT', 'dMadLieu', ...TR.flatMap(k => [`t${k}d`, `t${k}a`, `t${k}km`])].forEach(id => { $(id).value = ''; delete $(id).dataset.ll; });
     TR.forEach(k => $(`t${k}info`).textContent = '');
     $('dMad').checked = false; $('dObj').value = 'Transfert / Mise à disposition';
     docSave(); docRender();
