@@ -219,7 +219,7 @@
   <div class="docside">
     <div class="actions noprint">
       <button class="btn" type="button" id="dPrint">Imprimer / PDF</button>
-      <button class="btn small" type="button" id="dNew">Nouveau document</button>
+      <button class="btn small" type="button" id="dNew" title="Efface le client, les trajets et la mise à disposition (l'entreprise et les tarifs sont conservés)">↻ Nouveau devis</button>
       <a class="btn small" id="dModel" href="modeles/Prestige_VTC_Facture.pdf" target="_blank" rel="noopener" hidden>★ Modèle de facture (PDF)</a>
     </div>
     <div class="psheet" id="psheet"></div>
@@ -342,6 +342,7 @@
         <button class="btn" id="genDevis" type="button">Générer le devis</button>
         <button class="btn alt" id="genFac" type="button">Générer la facture</button>
       </div>
+      <button class="btn small" id="resetF" type="button" title="Efface le client, l'itinéraire, les montants et les dates (les informations de l'entreprise sont conservées)">↻ Nouvelle prestation</button>
     </div>
   </aside>
 
@@ -427,7 +428,8 @@
     return {name: name || '', cp: first(p.postcode) || '', ville: first(p.city) || '', ll: lon + ',' + lat};
   }
   async function geocode(q, limit){
-    const r = await fetch(`${GEO}?q=${encodeURIComponent(q)}&index=address,poi&limit=${limit}`);
+    // lat/lon = Auch: nearby results come first, the rest of France still follows
+    const r = await fetch(`${GEO}?q=${encodeURIComponent(q)}&index=address,poi&limit=${limit}&lat=43.6465&lon=0.5856`);
     if (!r.ok) throw new Error('Recherche d\'adresse indisponible');
     return ((await r.json()).features || []).map(place);
   }
@@ -743,12 +745,14 @@
     TR.forEach(k => $(`t${k}info`).textContent = '');
     $('dMad').checked = false; $('dObj').value = 'Transfert / Mise à disposition';
     docSave(); docRender();
+    window.scrollTo({top: 0, behavior: 'smooth'}); $('dAtt').focus({preventScroll: true});
   };
   function setType(t){
     docType = t;
     $('dTabDevis').setAttribute('aria-selected', t === 'devis'); $('dTabFac').setAttribute('aria-selected', t === 'facture');
     $('dNoPre').textContent = t === 'facture' ? 'F-' : 'DV-';
     $('dPayWrap').hidden = $('dModel').hidden = t !== 'facture';
+    $('dNew').textContent = t === 'facture' ? '↻ Nouvelle facture' : '↻ Nouveau devis';
     if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t);
     setBand(t); docRender();
   }
@@ -779,6 +783,22 @@
   }
   addEventListener('hashchange', nav);
   nav();
+
+  // Clear everything except the company block, so the next client starts from a blank form
+  $('resetF').onclick = () => {
+    const keep = ['entNom','entSiret','entEvtc','entAdr','entTel','entMail','entVeh','entTva','franchise','tkm','th','pay'];
+    $('f').querySelectorAll('input, select').forEach(e => {
+      if (keep.includes(e.id)) return;
+      if (e.type === 'radio') e.checked = e.id === 'sensAller';
+      else if (e.type === 'checkbox') e.checked = false;
+      else { e.value = ''; delete e.dataset.ll; }
+    });
+    $('stops').innerHTML = ''; stopN = 0; routeSeq++;
+    $('routeInfo').textContent = 'Choisissez les adresses dans la liste : la distance est calculée automatiquement (vous pouvez la corriger).';
+    $('doc').hidden = true;
+    update();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  };
 
   $('f').addEventListener('input', update);
   $('f').addEventListener('change', update);
