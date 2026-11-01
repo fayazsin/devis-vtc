@@ -220,6 +220,7 @@
     <div class="actions noprint">
       <button class="btn" type="button" id="dPrint">Imprimer / PDF</button>
       <button class="btn small" type="button" id="dNew">Nouveau document</button>
+      <a class="btn small" id="dModel" href="modeles/Prestige_VTC_Facture.pdf" target="_blank" rel="noopener" hidden>★ Modèle de facture (PDF)</a>
     </div>
     <div class="psheet" id="psheet"></div>
   </div>
@@ -747,7 +748,7 @@
     docType = t;
     $('dTabDevis').setAttribute('aria-selected', t === 'devis'); $('dTabFac').setAttribute('aria-selected', t === 'facture');
     $('dNoPre').textContent = t === 'facture' ? 'F-' : 'DV-';
-    $('dPayWrap').hidden = t !== 'facture';
+    $('dPayWrap').hidden = $('dModel').hidden = t !== 'facture';
     if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t);
     setBand(t); docRender();
   }
