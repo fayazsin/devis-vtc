@@ -187,9 +187,10 @@
     </div>
 
     <div class="two">
-      <label>TVA (%)<input id="dTva" type="number" min="0" step="0.1" value="10"></label>
-      <label id="dPayWrap">Mode de règlement<select id="dPay"><option>CB / ESPÈCES / CHÈQUE</option><option>CB</option><option>ESPÈCES</option><option>CHÈQUE</option><option>VIREMENT</option></select></label>
+      <label>TVA transferts (%)<input id="dTva" type="number" min="0" step="0.1" value="10"></label>
+      <label>TVA mise à disposition (%)<input id="dTvaMad" type="number" min="0" step="0.1" value="20"></label>
     </div>
+    <label id="dPayWrap">Mode de règlement<select id="dPay"><option>CB / ESPÈCES / CHÈQUE</option><option>CB</option><option>ESPÈCES</option><option>CHÈQUE</option><option>VIREMENT</option></select></label>
 
     <div class="lines" id="dSum"></div>
 
@@ -689,8 +690,10 @@
     // Transfers are priced once, on the total distance: minimum fare up to the threshold, per-km rate above
     const kmTot = round2(tr.reduce((s, t) => s + t.km, 0));
     const trAmt = kmTot > 0 ? round2(kmTot <= seuil ? min : kmTot * rate) : 0;
-    const ht = round2(trAmt + mad), tvaP = num('dTva'), tva = round2(ht * tvaP / 100);
-    return {rate, min, seuil, madRate, tr, kmTot, trAmt, madOn, hours, extra, mad, ht, tvaP, tva, ttc: round2(ht + tva)};
+    // TVA: transfers (transport de personnes, 10 % by default) and mise à disposition (20 % by default) at their own rates
+    const ht = round2(trAmt + mad), tvaP = num('dTva'), tvaMP = num('dTvaMad');
+    const tvaT = round2(trAmt * tvaP / 100), tvaM = round2(mad * tvaMP / 100), tva = round2(tvaT + tvaM);
+    return {rate, min, seuil, madRate, tr, kmTot, trAmt, madOn, hours, extra, mad, ht, tvaP, tvaMP, tvaT, tvaM, tva, ttc: round2(ht + tva)};
   }
 
   function docRender(){
@@ -710,7 +713,8 @@
       <div><span>Transferts HT (${nf(c.kmTot)} km)</span><span>${eur(c.trAmt)}</span></div>
       <div><span>Mise à disposition HT</span><span>${eur(c.mad)}</span></div>
       <div><span>Total HT</span><span>${eur(c.ht)}</span></div>
-      <div><span>TVA ${nf(c.tvaP)} %</span><span>${eur(c.tva)}</span></div>
+      <div><span>TVA transferts ${nf(c.tvaP)} %</span><span>${eur(c.tvaT)}</span></div>
+      <div><span>TVA mise à disposition ${nf(c.tvaMP)} %</span><span>${eur(c.tvaM)}</span></div>
       <div><span><b>Total TTC</b></span><span>${eur(c.ttc)}</span></div>`;
 
     setMaps('dMaps', c.tr.flatMap(t => [t.d, t.a]));
@@ -734,7 +738,8 @@
       <table><thead><tr><th>DÉSIGNATION</th><th class="n">MONTANT H.T.</th></tr></thead><tbody>${tarifRow}${trRows}${madRow}</tbody></table>
       <table><tbody>
         <tr class="b"><td>TOTAL H.T. :</td><td class="n">${amt(c.ht, !tpl)}</td></tr>
-        <tr><td>TVA (si applicable) : ${tpl ? bl(45) : nf(c.tvaP)} %</td><td class="n">${amt(c.tva, !tpl)}</td></tr>
+        ${tpl || c.trAmt ? `<tr><td>TVA transferts (si applicable) : ${tpl ? bl(45) : nf(c.tvaP)} %</td><td class="n">${amt(c.tvaT, !tpl)}</td></tr>` : ''}
+        ${tpl || c.mad ? `<tr><td>TVA mise à disposition (si applicable) : ${tpl ? bl(45) : nf(c.tvaMP)} %</td><td class="n">${amt(c.tvaM, !tpl)}</td></tr>` : ''}
         <tr class="g"><td>TOTAL GÉNÉRAL T.T.C. :</td><td class="n">${amt(c.ttc, !tpl)}</td></tr>
       </tbody></table>
       ${isF ? `<p>MODE DE RÈGLEMENT : ${v('dPay')}</p>` : ''}
