@@ -38,8 +38,10 @@
   .group{display:grid;gap:10px}
   .sub{background:var(--sub);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
   label{font-size:.82rem;font-weight:600;display:grid;gap:5px}
-  input,select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
-  input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  input,select,textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-width:0}
+  input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  [hidden]{display:none!important}
+  textarea{resize:vertical}
   .row{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media (max-width:460px){.two{grid-template-columns:1fr}}
@@ -94,7 +96,45 @@
   .ac li small{display:block;color:var(--muted);font-size:.75rem;font-weight:400}
   .ac li[aria-selected="true"],.ac li:hover{background:var(--sub)}
   .route{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  /* Views: home (3 choices), prestation (full simulator), simplified devis/facture */
+  .backlink{display:inline-block;color:var(--band-fg);font-weight:600;font-size:.9rem;margin-bottom:14px;text-decoration:none;opacity:.85}
+  .backlink:hover{opacity:1;text-decoration:underline}
+  .view .wrap{margin-top:-36px;padding-block:0 48px}
+  .choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  @media (max-width:760px){.choices{grid-template-columns:1fr}}
+  .choice{color:var(--fg);text-decoration:none;gap:8px;align-content:start;transition:border-color .15s,transform .15s}
+  .choice:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .choice b{font-family:var(--display);font-size:1.5rem;font-weight:800;color:var(--accent)}
+  .choice span{color:var(--muted);font-size:.9rem}
+  .docgrid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:24px;align-items:start}
+  @media (max-width:900px){.docgrid{grid-template-columns:1fr}}
+  .docside{display:grid;gap:12px;position:sticky;top:16px;min-width:0}
+  .docside .btn.small{background:var(--surface);padding:12px 16px;font-size:inherit}
+  .pre{display:flex;align-items:center;gap:6px}
+  .pre span{font-weight:700;color:var(--muted)}
+  .trrow{display:grid;grid-template-columns:140px minmax(0,1fr);gap:10px;align-items:end}
+  details summary{cursor:pointer;font-weight:700;font-size:.9rem}
+  details[open] summary{margin-bottom:12px}
+  .psheet{background:#fff;color:#1f2933;border:1px solid var(--line);border-radius:6px;padding:36px 40px;font-size:12.5px;line-height:1.5;overflow-x:auto}
+  .psheet .ph{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:12px;border-bottom:2px solid #2a8a80}
+  .psheet .ph>div:last-child{min-width:190px}
+  .psheet .pbrand{font-weight:800;font-size:24px;color:#1c3550;letter-spacing:.02em;line-height:1.1}
+  .psheet .psm{font-size:11px;color:#55606b;margin-top:8px}
+  .psheet p{margin:12px 0 0}
+  .psheet .pbox{display:grid;grid-template-columns:1fr 1fr;border:1px solid #c9d3dc;margin-top:16px}
+  .psheet .pbox>div{padding:10px 12px;white-space:pre-line}
+  .psheet .pbox>div+div{border-left:1px solid #c9d3dc}
+  .psheet table{width:100%;border-collapse:collapse;margin-top:14px;font-variant-numeric:tabular-nums}
+  .psheet th{background:#1c3550;color:#fff;text-align:left;font-size:11px;padding:8px 10px;letter-spacing:.03em}
+  .psheet td{border:1px solid #c9d3dc;padding:8px 10px;vertical-align:top}
+  .psheet td.n,.psheet th.n{width:26%;text-align:right;white-space:nowrap}
+  .psheet .b td{font-weight:700}
+  .psheet .g td{background:#eef2f6;font-weight:800}
+  .psheet .bl{display:inline-block;border-bottom:1px solid #555;height:1em;vertical-align:baseline}
   @media print{
+    .noprint{display:none!important}
+    .view .wrap{display:block;margin:0;padding:0}
+    .psheet{border:0;padding:0}
     header.band,aside,.card.form,.actions,.tabs,.mailbox,.ex{display:none!important}
     body{background:#fff} main .wrap{display:block;margin:0;padding:0}
     #doc{border:0;padding:0} .sheet{border:0;padding:0}
@@ -103,11 +143,89 @@
 </style>
 
 <header class="band"><div class="wrap">
-  <h1>Simulateur de course VTC</h1>
-  <p>En VTC, le prix est <b>libre et convenu à l'avance</b>. Établissez un devis forfaitaire, puis la facture, à remettre ou envoyer à votre client.</p>
+  <a href="#" class="backlink" id="back" hidden>← Accueil</a>
+  <h1 id="bandTitle">Simulateur de course VTC</h1>
+  <p id="bandText">En VTC, le prix est <b>libre et convenu à l'avance</b>. Établissez un devis forfaitaire, puis la facture, à remettre ou envoyer à votre client.</p>
 </div></header>
 
-<main><div class="wrap">
+<section id="vHome" class="view" hidden><div class="wrap">
+  <div class="choices">
+    <a class="card choice" href="#devis"><b>Devis</b><span>Transferts et mise à disposition. Les distances et les montants sont calculés automatiquement.</span></a>
+    <a class="card choice" href="#prestation"><b>Prestation</b><span>Le simulateur complet : trajet avec arrêts, mise à disposition, options, TVA 10 / 20 %.</span></a>
+    <a class="card choice" href="#facture"><b>Facture</b><span>Reprend les informations du devis et calcule le total à payer.</span></a>
+  </div>
+</div></section>
+
+<section id="vDoc" class="view" hidden><div class="wrap docgrid">
+  <form class="card dform noprint" id="df" autocomplete="off">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="dTabDevis" aria-selected="true">Devis</button>
+      <button type="button" role="tab" id="dTabFac" aria-selected="false">Facture</button>
+    </div>
+    <p class="hint">La facture reprend les informations du devis : passez de l'un à l'autre sans rien ressaisir.</p>
+    <div class="two">
+      <label>N°<div class="pre"><span id="dNoPre">DV-</span><input id="dNo" aria-label="Numéro"></div></label>
+      <label>Date<input id="dDate" type="date"></label>
+    </div>
+    <label>À l'attention de<textarea id="dAtt" rows="2" placeholder="Nom du client&#10;Adresse"></textarea></label>
+    <label>Objet<input id="dObj" value="Transfert / Mise à disposition"></label>
+
+    <div class="group">
+      <h3>Transferts</h3>
+      <div id="dTransfers" class="group"></div>
+    </div>
+
+    <div class="sub">
+      <h3>Mise à disposition</h3>
+      <label class="check"><input type="checkbox" id="dMad"> Inclure une mise à disposition</label>
+      <div class="two">
+        <label>Heures supplémentaires<input id="dMadH" type="number" min="0" step="0.25" placeholder="0"></label>
+        <label>Lieu<input id="dMadLieu" placeholder="ex. Toulouse centre"></label>
+      </div>
+      <p class="calc" id="dMadCalc"></p>
+    </div>
+
+    <div class="two">
+      <label>TVA (%)<input id="dTva" type="number" min="0" step="0.1" value="10"></label>
+      <label id="dPayWrap">Mode de règlement<select id="dPay"><option>CB / ESPÈCES / CHÈQUE</option><option>CB</option><option>ESPÈCES</option><option>CHÈQUE</option><option>VIREMENT</option></select></label>
+    </div>
+
+    <div class="lines" id="dSum"></div>
+
+    <details>
+      <summary>Entreprise et tarifs</summary>
+      <div class="group">
+        <label>Nom<input id="eNom" value="PRESTIGE VTC"></label>
+        <div class="two">
+          <label>Adresse<input id="eAdr1" value="2 rue du 1er janvier 1949"></label>
+          <label>CP / ville<input id="eAdr2" value="31470"></label>
+        </div>
+        <div class="two">
+          <label>Contact<input id="eTel" value="07 52 84 81 23"></label>
+          <label>E-mail<input id="eMail" value="prestige@gmail.com"></label>
+        </div>
+        <div class="two">
+          <label>Tarif au km HT (€)<input id="dRate" type="number" min="0" step="0.01" value="3"></label>
+          <label>Forfait minimum HT (€)<input id="dMin" type="number" min="0" step="0.01" value="30"></label>
+        </div>
+        <div class="two">
+          <label>Forfait jusqu'à (km inclus)<input id="dSeuil" type="number" min="0" step="0.1" value="10"></label>
+          <label>Mise à disposition, l'heure HT (€)<input id="dMadRate" type="number" min="0" step="0.5" value="70"></label>
+        </div>
+      </div>
+    </details>
+  </form>
+
+  <div class="docside">
+    <div class="actions noprint">
+      <button class="btn" type="button" id="dPrint">Imprimer / PDF</button>
+      <button class="btn small" type="button" id="dNew">Nouveau document</button>
+    </div>
+    <div class="psheet" id="psheet"></div>
+  </div>
+</div></section>
+
+<main id="vPrestation" hidden><div class="wrap">
   <form class="card form" id="f" autocomplete="off">
     <h2>Votre prestation</h2>
     <div class="note">Renseignez le <b>trajet</b> et/ou la <b>mise à disposition</b> : les deux s'additionnent (TVA 10 % sur le trajet, 20 % sur la mise à disposition).</div>
@@ -312,7 +430,7 @@
     if (!r.ok) throw new Error('Recherche d\'adresse indisponible');
     return ((await r.json()).features || []).map(place);
   }
-  function autocomplete(input, onPick){
+  function autocomplete(input, onPick, after = () => { update(); route(); }){
     const box = document.createElement('div'); box.className = 'ac';
     input.replaceWith(box); box.appendChild(input);
     const ul = document.createElement('ul'); ul.setAttribute('role', 'listbox'); ul.hidden = true; box.appendChild(ul);
@@ -320,7 +438,7 @@
     let items = [], sel = -1, timer, seq = 0;
     const close = () => { ul.hidden = true; input.setAttribute('aria-expanded', 'false'); sel = -1; };
     const mark = () => [...ul.children].forEach((li, k) => li.setAttribute('aria-selected', k === sel));
-    const pick = k => { const it = items[k]; if (!it) return; close(); onPick(it); input.dataset.ll = it.ll; update(); route(); };
+    const pick = k => { const it = items[k]; if (!it) return; close(); onPick(it); input.dataset.ll = it.ll; after(); };
     input.addEventListener('input', () => {
       delete input.dataset.ll; clearTimeout(timer);
       const q = input.value.trim();
@@ -355,6 +473,16 @@
     const stops = [...document.querySelectorAll('.stopIn')].map(el => ({el, text: el.value.trim()})).filter(p => p.text);
     return [end('depAdr', 'depCp', 'depVille'), ...stops, end('arrAdr', 'arrCp', 'arrVille')];
   }
+  // Driving route through the given "lon,lat" points
+  async function drive(ll){
+    const mid = ll.slice(1, -1);
+    const url = `${ROUTE}?resource=bdtopo-valhalla&profile=car&optimization=fastest&start=${ll[0]}&end=${ll[ll.length-1]}`
+            + (mid.length ? '&intermediates=' + encodeURIComponent(mid.join('|')) : '') + '&distanceUnit=kilometer&timeUnit=minute&getSteps=false';
+    const r = await fetch(url), d = await r.json();
+    if (!r.ok || typeof d.distance !== 'number') throw new Error('Itinéraire introuvable');
+    return d;
+  }
+  const dur = m => { m = Math.round(m); return m >= 60 ? `${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')}` : `${m} min`; };
   let routeSeq = 0;
   async function route(manual){
     const pts = routePoints(), info = $('routeInfo'), my = ++routeSeq;
@@ -369,14 +497,10 @@
         p.el.dataset.ll = best.ll;
       }
       const ll = pts.map(p => p.el.dataset.ll), mid = ll.slice(1, -1);
-      const url = `${ROUTE}?resource=bdtopo-valhalla&profile=car&optimization=fastest&start=${ll[0]}&end=${ll[ll.length-1]}`
-              + (mid.length ? '&intermediates=' + encodeURIComponent(mid.join('|')) : '') + '&distanceUnit=kilometer&timeUnit=minute&getSteps=false';
-      const r = await fetch(url), d = await r.json();
-      if (!r.ok || typeof d.distance !== 'number') throw new Error('Itinéraire introuvable');
+      const d = await drive(ll);
       if (my !== routeSeq) return;
       $('km').value = Math.round(d.distance * 10) / 10;
-      const min = Math.round(d.duration), dur = min >= 60 ? `${Math.floor(min/60)} h ${String(min%60).padStart(2,'0')}` : `${min} min`;
-      info.textContent = `Itinéraire calculé : ${$('km').value.replace('.', ',')} km aller, environ ${dur} de route${mid.length ? ` (${mid.length} arrêt${mid.length>1?'s':''})` : ''}.`;
+      info.textContent = `Itinéraire calculé : ${$('km').value.replace('.', ',')} km aller, environ ${dur(d.duration)} de route${mid.length ? ` (${mid.length} arrêt${mid.length>1?'s':''})` : ''}.`;
       update();
     } catch(e) {
       if (my === routeSeq) info.textContent = (e.message || 'Erreur réseau') + '. Saisissez la distance à la main.';
@@ -489,6 +613,170 @@
   };
 
   showNextFac();
+
+  // ---- Simplified devis / facture (one shared form: the facture reuses the devis data) ----
+  const TR = [1, 2, 3], ord = k => k === 1 ? '1er' : k + 'ème';
+  const nf = n => n.toLocaleString('fr-FR', {maximumFractionDigits:2});
+  const todayInfo = () => { const d = new Date(), p = n => String(n).padStart(2,'0');
+    return {iso: `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`, no: `${d.getFullYear()}-${p(d.getMonth()+1)}${p(d.getDate())}-01`}; };
+  let docType = 'devis';
+  const trSeq = {};
+
+  $('dTransfers').innerHTML = TR.map(k => `
+    <div class="sub">
+      <h3>${ord(k)} transfert</h3>
+      <label>Départ de<input id="t${k}d" placeholder="Adresse de départ"></label>
+      <label>À<input id="t${k}a" placeholder="Adresse d'arrivée"></label>
+      <div class="trrow"><label>Distance (km)<input id="t${k}km" type="number" min="0" step="0.1" placeholder="auto"></label><p class="calc" id="t${k}amt"></p></div>
+      <div class="route"><button type="button" class="btn small" data-k="${k}">Calculer la distance</button><span class="hint" id="t${k}info" role="status"></span></div>
+    </div>`).join('');
+  TR.forEach(k => {
+    ['d', 'a'].forEach(s => {
+      const inp = $(`t${k}${s}`);
+      autocomplete(inp, it => { inp.value = [it.name, (it.cp + ' ' + it.ville).trim()].filter(Boolean).join(', '); }, () => docTransfer(k));
+    });
+  });
+  $('dTransfers').addEventListener('click', e => { const k = e.target.dataset && e.target.dataset.k; if (k) docTransfer(+k, true); });
+
+  async function docTransfer(k, manual){
+    const els = [$(`t${k}d`), $(`t${k}a`)], info = $(`t${k}info`), my = trSeq[k] = (trSeq[k] || 0) + 1;
+    const done = () => { docSave(); docRender(); };
+    if (els.some(e => !e.value.trim())) { if (manual) info.textContent = 'Renseignez le départ et l\'arrivée.'; return done(); }
+    if (!manual && els.some(e => !e.dataset.ll)) return done();
+    info.textContent = 'Calcul de l\'itinéraire…';
+    try {
+      for (const e of els) if (!e.dataset.ll) {
+        const [best] = await geocode(e.value, 1);
+        if (!best) throw new Error('Adresse introuvable : ' + e.value);
+        e.dataset.ll = best.ll;
+      }
+      const d = await drive(els.map(e => e.dataset.ll));
+      if (my !== trSeq[k]) return;
+      $(`t${k}km`).value = Math.round(d.distance * 10) / 10;
+      info.textContent = `${nf(+$(`t${k}km`).value)} km, environ ${dur(d.duration)} de route.`;
+    } catch(e) {
+      if (my === trSeq[k]) info.textContent = (e.message || 'Erreur réseau') + '. Saisissez la distance à la main.';
+    }
+    done();
+  }
+
+  function docCalc(){
+    const rate = num('dRate'), min = num('dMin'), seuil = num('dSeuil'), madRate = num('dMadRate');
+    const tr = TR.map(k => {
+      const km = num(`t${k}km`), d = $(`t${k}d`).value.trim(), a = $(`t${k}a`).value.trim();
+      return {k, d, a, km, amt: km > 0 ? round2(km <= seuil ? min : km * rate) : 0, used: !!(d || a || km)};
+    });
+    const madOn = $('dMad').checked, extra = Math.ceil(num('dMadH'));
+    const mad = madOn ? round2(madRate * (1 + extra)) : 0;
+    const ht = round2(tr.reduce((s, t) => s + t.amt, 0) + mad), tvaP = num('dTva'), tva = round2(ht * tvaP / 100);
+    return {rate, min, seuil, madRate, tr, madOn, extra, mad, ht, tvaP, tva, ttc: round2(ht + tva)};
+  }
+
+  function docRender(){
+    const c = docCalc(), isF = docType === 'facture', v = id => esc($(id).value), T = isF ? 'FACTURE' : 'DEVIS';
+    const no = (isF ? 'F-' : 'DV-') + ($('dNo').value.trim() || $('dNo').placeholder);
+    const dv = $('dDate').value, date = dv ? dv.split('-').reverse().join('/') : '';
+    const bl = w => `<span class="bl" style="width:${w}px"></span>`;
+    const used = c.tr.filter(t => t.used), tpl = !used.length && !c.madOn; // nothing entered: print a blank form like the paper one
+    const amt = (n, show) => show ? eur(n) : bl(80) + ' €';
+
+    // Form-side helpers
+    c.tr.forEach(t => $(`t${t.k}amt`).textContent = t.km > 0
+      ? (t.km <= c.seuil ? `≤ ${nf(c.seuil)} km : forfait ${eur(c.min)} HT` : `${nf(t.km)} km × ${eur(c.rate)} = ${eur(t.amt)} HT`) : '');
+    $('dMadCalc').textContent = c.madOn ? `${eur(c.madRate)} × (1 h + ${c.extra} h sup.) = ${eur(c.mad)} HT` : '';
+    $('dSum').innerHTML = `
+      <div><span>Transferts HT</span><span>${eur(round2(c.ht - c.mad))}</span></div>
+      <div><span>Mise à disposition HT</span><span>${eur(c.mad)}</span></div>
+      <div><span>Total HT</span><span>${eur(c.ht)}</span></div>
+      <div><span>TVA ${nf(c.tvaP)} %</span><span>${eur(c.tva)}</span></div>
+      <div><span><b>Total TTC</b></span><span>${eur(c.ttc)}</span></div>`;
+
+    const shown = tpl ? c.tr : used;
+    const trRows = shown.map(t => `<tr><td>${ord(t.k)} transfert : Départ de : ${t.d ? esc(t.d) : bl(190)}<br>À : ${t.a ? esc(t.a) : bl(260)}<br>Distance : ${t.km ? nf(t.km) : bl(45)} km</td><td class="n">${amt(t.amt, t.km > 0)}</td></tr>`).join('');
+    const madRow = (c.madOn || tpl) ? `<tr><td>MISE À DISPOSITION : forfait minimum de 1 heure : ${nf(c.madRate)} € H.T.<br>Toute heure commencée et non terminée est facturée dans son intégralité.<br>Heures supplémentaires : ${c.madOn ? c.extra : bl(45)}<br>Lieu : ${$('dMadLieu').value.trim() ? v('dMadLieu') : bl(260)}</td><td class="n">${amt(c.mad, c.madOn)}</td></tr>` : '';
+    const tarifRow = shown.length ? `<tr><td>TRANSFERT : tarif au km : ${eur(c.rate)}<br>Forfait minimum jusqu'à ${nf(c.seuil)} km inclus : ${eur(c.min)}</td><td></td></tr>` : '';
+    const att = $('dAtt').value.trim() ? v('dAtt') : (isF ? bl(240) + '\n' + bl(240) : bl(300));
+    const obj = v('dObj');
+    const cond = `${isF ? 'Rappel tarifaire' : 'Conditions tarifaires'} : ${nf(c.rate)} €/km. Pour tout trajet de ${nf(c.seuil)} km ou moins, le prix minimum est de ${nf(c.min)} €. Au-delà de ${nf(c.seuil)} km, le tarif kilométrique s'applique.`;
+
+    $('psheet').innerHTML = `
+      <div class="ph">
+        <div><div class="pbrand">${v('eNom')}</div><div class="psm">${v('eAdr1')}<br>${v('eAdr2')}</div><div class="psm">CONTACT : ${v('eTel')}<br>EMAIL : ${v('eMail')}</div></div>
+        <div><div class="pbrand">${T}</div><div class="psm">${T} N° : ${esc(no)}<br>DATE : ${date || bl(80)}</div></div>
+      </div>
+      ${isF
+        ? `<div class="pbox"><div>À L'ATTENTION DE :\n${att}</div><div>OBJET :\n${obj}</div></div>`
+        : `<p>À L'ATTENTION DE : ${att.replace(/\n/g, ', ')}</p><p>OBJET : ${obj}</p>`}
+      <table><thead><tr><th>DÉSIGNATION</th><th class="n">MONTANT H.T.</th></tr></thead><tbody>${tarifRow}${trRows}${madRow}</tbody></table>
+      <table><tbody>
+        <tr class="b"><td>TOTAL H.T. :</td><td class="n">${amt(c.ht, !tpl)}</td></tr>
+        <tr><td>TVA (si applicable) : ${tpl ? bl(45) : nf(c.tvaP)} %</td><td class="n">${amt(c.tva, !tpl)}</td></tr>
+        <tr class="g"><td>TOTAL GÉNÉRAL T.T.C. :</td><td class="n">${amt(c.ttc, !tpl)}</td></tr>
+      </tbody></table>
+      ${isF ? `<p>MODE DE RÈGLEMENT : ${v('dPay')}</p>` : ''}
+      <p>${cond}</p>`;
+  }
+
+  // Keep the document between visits (this browser only)
+  const DKEY = 'vtcDocV1';
+  const docFields = () => [...document.querySelectorAll('#df input, #df select, #df textarea')].filter(e => e.id);
+  function docSave(){
+    const o = {};
+    docFields().forEach(e => o[e.id] = e.type === 'checkbox' ? e.checked : e.value);
+    store.set(DKEY, JSON.stringify(o));
+  }
+  function docLoad(){
+    let o = {};
+    try { o = JSON.parse(store.get(DKEY) || '{}') || {}; } catch(e) {}
+    docFields().forEach(e => { if (!(e.id in o)) return; if (e.type === 'checkbox') e.checked = !!o[e.id]; else e.value = o[e.id]; });
+    const t = todayInfo();
+    $('dNo').placeholder = t.no;
+    if (!$('dDate').value) $('dDate').value = t.iso;
+  }
+  $('dNew').onclick = () => {
+    const t = todayInfo(), cur = $('dNo').value.trim() || $('dNo').placeholder;
+    $('dNo').value = cur.startsWith(t.no.slice(0, -3)) ? nextFacNo(cur) : t.no;
+    $('dDate').value = t.iso;
+    ['dAtt', 'dMadH', 'dMadLieu', ...TR.flatMap(k => [`t${k}d`, `t${k}a`, `t${k}km`])].forEach(id => { $(id).value = ''; delete $(id).dataset.ll; });
+    TR.forEach(k => $(`t${k}info`).textContent = '');
+    $('dMad').checked = false; $('dObj').value = 'Transfert / Mise à disposition';
+    docSave(); docRender();
+  };
+  function setType(t){
+    docType = t;
+    $('dTabDevis').setAttribute('aria-selected', t === 'devis'); $('dTabFac').setAttribute('aria-selected', t === 'facture');
+    $('dNoPre').textContent = t === 'facture' ? 'F-' : 'DV-';
+    $('dPayWrap').hidden = t !== 'facture';
+    if (location.hash !== '#' + t) history.replaceState(null, '', '#' + t);
+    setBand(t); docRender();
+  }
+  $('dTabDevis').onclick = () => setType('devis');
+  $('dTabFac').onclick = () => setType('facture');
+  $('dPrint').onclick = () => window.print();
+  if (window.self !== window.top) $('dPrint').hidden = true;
+  $('df').addEventListener('input', () => { docSave(); docRender(); });
+  $('df').addEventListener('change', () => { docSave(); docRender(); });
+  $('df').addEventListener('submit', e => e.preventDefault());
+  docLoad();
+
+  // ---- Views: #devis, #prestation, #facture, or the home choices ----
+  const BAND = {
+    '': ['Devis, prestation, facture', 'Choisissez ce que vous voulez préparer.'],
+    prestation: [$('bandTitle').textContent, $('bandText').innerHTML],
+    devis: ['Devis', 'Renseignez les transferts : la distance et le montant se calculent automatiquement.'],
+    facture: ['Facture', 'Les informations du devis sont reprises : vérifiez-les et imprimez la facture.']
+  };
+  function setBand(k){ $('bandTitle').textContent = BAND[k][0]; $('bandText').innerHTML = BAND[k][1]; }
+  function nav(){
+    const h = location.hash.slice(1), k = h in BAND ? h : '';
+    $('vHome').hidden = k !== ''; $('vPrestation').hidden = k !== 'prestation'; $('vDoc').hidden = k !== 'devis' && k !== 'facture';
+    $('back').hidden = !k;
+    if (k === 'devis' || k === 'facture') setType(k); else setBand(k);
+    document.title = k ? BAND[k][0] + ' VTC' : 'Devis VTC';
+    window.scrollTo(0, 0);
+  }
+  addEventListener('hashchange', nav);
+  nav();
 
   $('f').addEventListener('input', update);
   $('f').addEventListener('change', update);
